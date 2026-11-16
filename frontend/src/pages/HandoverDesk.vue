@@ -9,6 +9,18 @@ const current = ref(null)
 const msg = ref('')
 const ok = ref(false)
 
+const TAG_CLASS = {
+  '在途': 'st-in',
+  '冻结': 'st-frozen',
+  '待确认归还': 'st-pending',
+  '已结清': 'st-done',
+  '已报废': 'st-scrap',
+}
+
+function tagClass(status) {
+  return TAG_CLASS[status] || ''
+}
+
 async function refresh() {
   shifts.value = await getJson('/api/shifts')
   const logs = await getJson('/api/handovers')
@@ -35,7 +47,9 @@ async function start() {
       to_shift_id: Number(toId.value),
     })
     ok.value = true
+    const excluded = (current.value.excluded || []).length
     msg.value = `已开交班单 #${current.value.id}，清单 ${current.value.batch_count} 批`
+      + (excluded ? `，排除 ${excluded} 批（冻结/待确认归还）` : '')
     await refresh()
   } catch (e) {
     msg.value = String(e.message || e)
@@ -62,7 +76,7 @@ async function complete() {
 <template>
   <div>
     <h1>交班办理</h1>
-    <p class="lead">同一时刻只允许一单进行中的交班；清单内在途批次必须整批过户，禁止只改单据不改归属。</p>
+    <p class="lead">同一时刻只允许一单进行中的交班；清单内在途批次必须整批过户，冻结/待确认归还批次发起时即排除并留痕。</p>
 
     <div class="panel">
       <div class="row">
@@ -93,7 +107,23 @@ async function complete() {
           <tr v-for="b in current.items || []" :key="b.id">
             <td>{{ b.biz_key }}</td>
             <td>{{ b.title }}</td>
-            <td>{{ b.status }}</td>
+            <td><span class="tag" :class="tagClass(b.status)">{{ b.status }}</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel" v-if="current && (current.excluded || []).length">
+      <h2>本次排除 · 不参与交班</h2>
+      <p class="lead" style="margin-bottom:12px">排除结果已在发起快照中固化；排除原因与批次状态同源。</p>
+      <table>
+        <thead><tr><th>业务键</th><th>标题</th><th>快照时状态</th><th>排除原因</th></tr></thead>
+        <tbody>
+          <tr v-for="x in current.excluded" :key="x.batch_id">
+            <td>{{ x.biz_key }}</td>
+            <td>{{ x.title }}</td>
+            <td><span class="tag" :class="tagClass(x.status_at_snapshot)">{{ x.status_at_snapshot }}</span></td>
+            <td>{{ x.exclude_reason }}</td>
           </tr>
         </tbody>
       </table>

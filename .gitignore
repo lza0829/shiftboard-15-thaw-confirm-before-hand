@@ -3,6 +3,8 @@ __pycache__/
 .pytest_cache/
 backend/data/
 backend/data_test/
+backend/data_test_freeze/
 dist/
 .venv/
 *.pyc
+backend/data_accept/

@@ -208,6 +208,18 @@ select {
   color: var(--muted);
 }
 .tag.on { border-color: var(--accent); color: var(--accent); }
+/* 批次三态（在途/冻结/待确认归还）与终态在列表中可区分 */
+.tag.st-in { border-color: var(--accent); color: var(--accent); }
+.tag.st-frozen { border-color: #6aa5d8; color: #6aa5d8; }
+.tag.st-pending { border-color: var(--warn); color: var(--warn); }
+.tag.st-done { border-color: var(--ok); color: var(--ok); }
+.tag.st-scrap { border-color: var(--danger); color: var(--danger); }
+
+.btn.small { padding: 4px 10px; font-size: 12px; font-weight: 500; }
+.btn.ghost.danger { color: var(--danger); border-color: var(--danger); }
+.actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.events-row td { background: rgba(26, 31, 36, 0.6); }
+.events-table th, .events-table td { padding: 6px 8px; font-size: 12px; }
 
 @media (max-width: 800px) {
   .topbar, .content, .ribbon { padding-left: 16px; padding-right: 16px; }

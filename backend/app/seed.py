@@ -36,6 +36,28 @@ CREATE TABLE IF NOT EXISTS handover_items (
   batch_id INTEGER NOT NULL REFERENCES batches(id),
   PRIMARY KEY (handover_id, batch_id)
 );
+-- 批次状态变迁审计：只追加，不更新不删除
+CREATE TABLE IF NOT EXISTS batch_state_events (
+  id INTEGER PRIMARY KEY,
+  batch_id INTEGER NOT NULL REFERENCES batches(id),
+  biz_key TEXT NOT NULL,
+  action TEXT NOT NULL,
+  from_status TEXT NOT NULL,
+  to_status TEXT NOT NULL,
+  operator_shift_id INTEGER REFERENCES shifts(id),
+  reason TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL
+);
+-- 交班发起快照：纳入/排除结果随单固化，排除原因与批次状态同源
+CREATE TABLE IF NOT EXISTS handover_snapshot (
+  handover_id INTEGER NOT NULL REFERENCES handovers(id),
+  batch_id INTEGER NOT NULL REFERENCES batches(id),
+  biz_key TEXT NOT NULL,
+  status_at_snapshot TEXT NOT NULL,
+  included INTEGER NOT NULL,
+  exclude_reason TEXT NOT NULL DEFAULT '',
+  PRIMARY KEY (handover_id, batch_id)
+);
 CREATE TABLE IF NOT EXISTS reconcile_reports (
   id INTEGER PRIMARY KEY,
   handover_id INTEGER REFERENCES handovers(id),
@@ -72,6 +94,25 @@ def init_db() -> None:
                     b["owner_shift_id"],
                     b["status"],
                     b.get("note", ""),
+                ),
+            )
+        for e in data.get("state_events", []):
+            conn.execute(
+                """
+                INSERT INTO batch_state_events(
+                  batch_id, biz_key, action, from_status, to_status,
+                  operator_shift_id, reason, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    e["batch_id"],
+                    e["biz_key"],
+                    e["action"],
+                    e["from_status"],
+                    e["to_status"],
+                    e.get("operator_shift_id"),
+                    e.get("reason", ""),
+                    e["created_at"],
                 ),
             )
         conn.commit()
